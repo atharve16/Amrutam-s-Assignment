@@ -15,18 +15,63 @@ const LEVEL_PRIORITY: Record<LogLevel, number> = {
 const REDACTED_KEYS = new Set([
   'authorization',
   'accesstoken',
+  'body',
+  'cancellationreason',
+  'clinicalnotes',
   'cookie',
-  'database_url',
-  'jwt_access_secret',
+  'databaseurl',
+  'dosage',
+  'email',
+  'fullname',
+  'jwtaccesssecret',
+  'medicationname',
+  'mfasecret',
   'password',
-  'password_hash',
-  'refresh_token',
+  'passwordhash',
+  'payload',
+  'phone',
+  'phonee164',
+  'prescription',
   'refreshtoken',
   'secret',
-  'secret_ciphertext',
+  'secretciphertext',
   'token',
-  'token_hash',
+  'tokenhash',
 ]);
+
+function normalizedKey(key: string): string {
+  return key.toLowerCase().replaceAll(/[^a-z0-9]/g, '');
+}
+
+function safeError(value: Error): Record<string, unknown> {
+  const name = /^[A-Za-z][A-Za-z0-9_.-]{0,63}$/.test(value.name) ? value.name : 'Error';
+  const candidateCode = (value as Error & { code?: unknown }).code;
+  const code =
+    typeof candidateCode === 'string' && /^[A-Za-z0-9_-]{1,64}$/.test(candidateCode)
+      ? candidateCode
+      : undefined;
+  const stackFrames = value.stack?.split(/\r?\n/).slice(1, 9).join('\n').trim();
+  return {
+    name,
+    ...(code ? { code } : {}),
+    ...(stackFrames ? { stack: stackFrames } : {}),
+  };
+}
+
+export function sanitizeForLogging(value: unknown, seen = new WeakSet<object>()): unknown {
+  if (value instanceof Error) return safeError(value);
+  if (Array.isArray(value)) return value.map((item) => sanitizeForLogging(item, seen));
+  if (typeof value !== 'object' || value === null) return value;
+  if (seen.has(value)) return '[Circular]';
+  seen.add(value);
+
+  return Object.fromEntries(
+    Object.entries(value).map(([key, item]) => [
+      key,
+      REDACTED_KEYS.has(normalizedKey(key)) ? '[REDACTED]' : sanitizeForLogging(item, seen),
+    ]),
+  );
+}
 
 @Injectable()
 export class JsonLogger implements LoggerService {
@@ -70,8 +115,8 @@ export class JsonLogger implements LoggerService {
       timestamp: new Date().toISOString(),
       level,
       ...(context ? { context } : {}),
-      message: this.sanitize(message),
-      ...(optionalParams.length > 0 ? { details: this.sanitize(optionalParams) } : {}),
+      message: sanitizeForLogging(message),
+      ...(optionalParams.length > 0 ? { details: sanitizeForLogging(optionalParams) } : {}),
     };
     const output = `${JSON.stringify(record)}\n`;
     if (LEVEL_PRIORITY[level] >= LEVEL_PRIORITY.error) {
@@ -79,26 +124,5 @@ export class JsonLogger implements LoggerService {
     } else {
       process.stdout.write(output);
     }
-  }
-
-  private sanitize(value: unknown, seen = new WeakSet<object>()): unknown {
-    if (value instanceof Error) {
-      return {
-        name: value.name,
-        message: value.message,
-        ...(value.stack ? { stack: value.stack } : {}),
-      };
-    }
-    if (Array.isArray(value)) return value.map((item) => this.sanitize(item, seen));
-    if (typeof value !== 'object' || value === null) return value;
-    if (seen.has(value)) return '[Circular]';
-    seen.add(value);
-
-    return Object.fromEntries(
-      Object.entries(value).map(([key, item]) => [
-        key,
-        REDACTED_KEYS.has(key.toLowerCase()) ? '[REDACTED]' : this.sanitize(item, seen),
-      ]),
-    );
   }
 }

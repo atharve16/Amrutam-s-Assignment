@@ -11,6 +11,12 @@ export interface TransactionClient {
   ): Promise<QueryResult<Row>>;
 }
 
+export interface DatabasePoolStats {
+  total: number;
+  idle: number;
+  waiting: number;
+}
+
 @Injectable()
 export class DatabaseService implements OnApplicationShutdown {
   private readonly pool: Pool;
@@ -77,6 +83,14 @@ export class DatabaseService implements OnApplicationShutdown {
       });
       return false;
     }
+  }
+
+  poolStats(): DatabasePoolStats {
+    return {
+      total: this.pool.totalCount,
+      idle: this.pool.idleCount,
+      waiting: this.pool.waitingCount,
+    };
   }
 
   async onApplicationShutdown(): Promise<void> {

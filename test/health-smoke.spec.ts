@@ -100,4 +100,34 @@ void describe('health endpoints smoke test', () => {
     assert.equal(response.status, 200);
     assert.match(await response.text(), /Amrutam API documentation/);
   });
+
+  void it('exposes bounded Prometheus metrics without counting scrapes', async () => {
+    const identifier = '123e4567-e89b-12d3-a456-426614174000';
+    const sensitiveQuery = 'patient-observability@example.test';
+    const protectedResponse = await fetch(
+      `${baseUrl}/api/v1/consultations/${identifier}?email=${sensitiveQuery}`,
+    );
+    assert.equal(protectedResponse.status, 401);
+
+    const first = await fetch(`${baseUrl}/api/v1/metrics?token=must-not-appear`);
+    assert.equal(first.status, 200);
+    assert.match(first.headers.get('content-type') ?? '', /^text\/plain/);
+    assert.equal(first.headers.get('cache-control'), 'no-store');
+    const firstBody = await first.text();
+    assert.match(firstBody, /amrutam_http_requests_total/);
+    assert.match(firstBody, /amrutam_http_request_duration_seconds/);
+    assert.match(firstBody, /amrutam_http_request_errors_total/);
+    assert.match(firstBody, /amrutam_database_pool_connections_total/);
+    assert.match(firstBody, /amrutam_database_pool_connections_idle/);
+    assert.match(firstBody, /amrutam_database_pool_waiting_requests/);
+    assert.match(firstBody, /route="\/api\/v1\/consultations\/:consultationId"/);
+    assert.equal(firstBody.includes(identifier), false);
+    assert.equal(firstBody.includes(sensitiveQuery), false);
+    assert.equal(firstBody.includes('must-not-appear'), false);
+    assert.equal(firstBody.includes('route="/api/v1/metrics"'), false);
+
+    const second = await fetch(`${baseUrl}/api/v1/metrics`);
+    assert.equal(second.status, 200);
+    assert.equal(await second.text(), firstBody);
+  });
 });

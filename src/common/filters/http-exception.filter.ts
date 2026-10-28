@@ -1,5 +1,6 @@
 import { ArgumentsHost, Catch, ExceptionFilter, HttpException, HttpStatus } from '@nestjs/common';
 import type { Request, Response } from 'express';
+import { boundedHttpMethod, requestRouteTemplate } from '../http/request-metadata';
 import { JsonLogger } from '../logging/json-logger.service';
 
 interface NestErrorBody {
@@ -25,8 +26,9 @@ export class HttpExceptionFilter implements ExceptionFilter {
       this.logger.error('Request failed', {
         event: 'http_request_failed',
         requestId: request.requestId,
-        method: request.method,
-        path: request.path,
+        method: boundedHttpMethod(request.method),
+        route: requestRouteTemplate(request),
+        statusCode,
         exception,
       });
     }

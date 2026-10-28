@@ -1,6 +1,6 @@
 # Amrutam Telemedicine Backend
 
-NestJS/TypeScript REST API for the Amrutam assignment. The MVP implements password authentication, rotating sessions, RBAC, verified-doctor search and availability, transactional idempotent booking, consultation lifecycle controls, prescriptions, payment-record simulation, audit events, outbox writes, and protected analytics using direct parameterized PostgreSQL queries.
+NestJS/TypeScript REST API for the Amrutam assignment. The MVP implements password authentication, rotating sessions, RBAC, verified-doctor search and availability, transactional idempotent booking, consultation lifecycle controls, prescriptions, payment-record simulation, audit events, outbox writes, protected analytics, structured logs, and Prometheus metrics using direct parameterized PostgreSQL queries.
 
 ## Prerequisites
 
@@ -68,8 +68,11 @@ The bootstrap refuses to run when an administrator already exists. It creates no
 | `GET /api/v1/admin/analytics`                  | Admin                        | Bounded aggregate analytics                  |
 | `GET /api/v1/health`                           | Public                       | Liveness without database dependency         |
 | `GET /api/v1/health/ready`                     | Public                       | Database readiness                           |
+| `GET /api/v1/metrics`                          | Public                       | Prometheus process and database-pool metrics |
 
 Availability creation, doctor promotion, booking, consultation transitions, prescription issuance, and payment creation require an `Idempotency-Key` header. Repeating the same scoped key and payload replays the committed response; changing the payload returns `409`. Booking reports success only after its database transaction commits.
+
+The metrics endpoint reports bounded controller route templates, status codes, durations, errors, and safe `pg.Pool` counts. It never labels metrics with raw URLs, IDs, query strings, users, or request data, and it does not count its own scrapes. See [observability operations](docs/observability.md) for metric definitions, Prometheus configuration, log redaction, and tracing status.
 
 ## Commands
 
@@ -84,6 +87,7 @@ Availability creation, doctor promotion, booking, consultation transitions, pres
 | `npm run lint`                         | Type-aware ESLint                                         |
 | `npm run typecheck`                    | Strict TypeScript check                                   |
 | `npm test`                             | Build and run `node:test` unit/static/HTTP smoke tests    |
+| `npm run test:integration`             | PostgreSQL-backed booking tests on a disposable database  |
 | `npm run smoke`                        | Check an independently running API                        |
 
 ## Docker
@@ -103,8 +107,8 @@ Compose reads the ignored `.env` at runtime and does not start PostgreSQL or emb
 - MFA storage exists but enrollment/challenge/verification is **not implemented**.
 - Auth throttling is per-process memory and should be replaced or supplemented by a trusted ingress/distributed limiter for multi-replica production.
 - The transactional outbox is written by booking/lifecycle flows, but no delivery worker exists.
-- Metrics, distributed tracing, measured load targets, backup/restore exercise, email verification, password reset, and automated retention jobs remain incomplete.
-- Database-backed endpoint integration tests require a dedicated migrated test database and were not part of the secret-free default test command.
+- Distributed tracing, production dashboards/alerts, measured load targets, backup/restore exercise, email verification, password reset, and automated retention jobs remain incomplete.
+- Database-backed endpoint integration tests require an explicitly confirmed disposable database and remain separate from the secret-free default test command.
 
 ## Documentation
 
@@ -113,4 +117,5 @@ Compose reads the ignored `.env` at runtime and does not start PostgreSQL or emb
 - [Database schema](docs/database-schema.md) and [ER diagram](docs/diagrams/er-diagram.md)
 - [Booking sequence](docs/diagrams/booking-sequence.md)
 - [Security threat model](docs/security-threat-model.md)
+- [Observability operations](docs/observability.md)
 - [Five-minute demo](docs/demo.md)

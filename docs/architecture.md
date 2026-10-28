@@ -14,6 +14,7 @@ flowchart LR
   Domain --> DBLayer[DatabaseService / bounded pg pool]
   DBLayer -->|TLS + parameterized SQL| PG[(Supabase PostgreSQL)]
   Domain --> Logs[Structured redacted logs]
+  Edge --> Metrics[Prometheus HTTP and pool metrics]
   Migrator[Explicit migration step] -->|advisory lock + transactions| PG
 ```
 
@@ -37,7 +38,7 @@ The first administrator is created only through the one-time server-side bootstr
 
 `DatabaseService` owns one bounded pool per process. TLS certificate verification is enabled by default. External values always use PostgreSQL placeholders. `withTransaction` acquires one client, issues `BEGIN`, executes all work on that client, commits only on success, attempts rollback on failure, and releases in `finally`.
 
-The process can start while PostgreSQL is unavailable: `/health` is liveness only, while `/health/ready` probes the database and returns sanitized `503` output. Shutdown hooks drain the pool.
+The process can start while PostgreSQL is unavailable: `/health` is liveness only, while `/health/ready` probes the database and returns sanitized `503` output. `/metrics` exposes bounded HTTP counters/latency plus the pool's total, idle, and waiting counts without connection or query data. Shutdown hooks drain the pool.
 
 The migration runner discovers ordered SQL files, acquires a session advisory lock, verifies immutable SHA-256 checksums, and records each migration in the same transaction as its SQL. Applied migrations `001`–`004` were not changed for the MVP.
 
@@ -67,4 +68,4 @@ The assignment’s 100,000-consultation/day and latency objectives are targets, 
 
 The multi-stage Docker image installs from the lockfile and runs as the unprivileged `node` user. Compose injects ignored runtime environment values and starts no second database. CI checks formatting, lint, strict TypeScript, build, tests, and high-severity advisories.
 
-Structured JSON logs and request IDs are implemented. Metrics, distributed traces, outbox delivery/retry processing, MFA, email verification, password recovery, distributed rate limiting, measured load results, backup/restore exercises, automated retention, and a least-privilege database grant deployment remain incomplete and are explicitly not claimed.
+Structured redacted JSON logs, request IDs, Prometheus HTTP metrics, and safe database-pool gauges are implemented. Distributed traces are deliberately deferred until an OTLP collector/exporter, sampling, sensitive-attribute policy, and exporter-backed verification are configured. Production dashboards/alerts, outbox delivery/retry processing, MFA, email verification, password recovery, distributed rate limiting, measured load results, backup/restore exercises, automated retention, and a least-privilege database grant deployment remain incomplete and are explicitly not claimed.

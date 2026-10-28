@@ -68,9 +68,9 @@ async function bootstrap(): Promise<void> {
 }
 
 bootstrap().catch((error: unknown) => {
-  const message = error instanceof Error ? error.message : 'Unknown startup failure';
+  const errorName = error instanceof Error ? error.name : 'UnknownError';
   process.stderr.write(
-    `${JSON.stringify({ timestamp: new Date().toISOString(), event: 'startup_failed', message })}\n`,
+    `${JSON.stringify({ timestamp: new Date().toISOString(), event: 'startup_failed', errorName })}\n`,
   );
   process.exitCode = 1;
 });

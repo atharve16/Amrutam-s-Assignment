@@ -14,6 +14,7 @@ import { ConsultationsModule } from './consultations/consultations.module';
 import { PaymentsModule } from './payments/payments.module';
 import { PrescriptionsModule } from './prescriptions/prescriptions.module';
 import { AdminModule } from './admin/admin.module';
+import { ObservabilityModule } from './observability/observability.module';
 
 @Module({
   imports: [
@@ -25,6 +26,7 @@ import { AdminModule } from './admin/admin.module';
     }),
     LoggingModule,
     DatabaseModule,
+    ObservabilityModule,
     IdempotencyModule,
     AuthModule,
     DoctorsModule,

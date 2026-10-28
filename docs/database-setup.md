@@ -52,9 +52,11 @@ Non-transactional statements are not automated in this milestone. If one becomes
 
 With the API running, `GET /api/v1/health/ready` should return 200 and `dependencies.database = "up"`. A 503 is deliberately generic; inspect redacted server logs and Supabase network/database metrics for diagnosis. Never paste the connection string into an issue or log.
 
-## Disposable schema verification
+## Disposable schema verification and integration tests
 
 Milestone 2 includes a verifier that runs the real migration runner twice, starts concurrent migration runners, exercises PostgreSQL constraints, checks expected foreign keys/indexes, proves cancellation/rebooking behavior, and injects a failing migration to ensure it is rolled back and not recorded.
+
+The booking integration suite starts the compiled NestJS application against another uniquely named schema, sends authenticated HTTP requests, and verifies consultation, idempotency, audit, and outbox state directly through PostgreSQL. It covers concurrent booking, idempotent replay and conflict, cancellation/rebooking history, and rollback after an induced late outbox failure. The suite removes only schemas it successfully created, including after failed setup.
 
 Use only a disposable local database or dedicated Supabase development project. The script creates uniquely named schemas and removes them, but it may temporarily install `pgcrypto`/`btree_gist` when absent. Never point it at production.
 
@@ -66,6 +68,7 @@ SCHEMA_TEST_CONFIRM_DISPOSABLE=yes
 
 ```bash
 npm run schema:verify
+npm run test:integration
 ```
 
-The explicit confirmation is a guard against accidental use. The normal application still uses only `DATABASE_URL`; no second application pool or database provider was added.
+The explicit confirmation is a guard against accidental use. Both commands use `SCHEMA_TEST_DATABASE_URL`; the normal application still uses only `DATABASE_URL`, and no second application pool or database provider was added. `SCHEMA_TEST_DATABASE_SSL=true` keeps certificate verification enabled. Set it to `false` only for an explicitly trusted local PostgreSQL server, never to work around a remote certificate error.

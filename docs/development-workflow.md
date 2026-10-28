@@ -18,7 +18,16 @@ npm run build
 npm test
 ```
 
-`npm test` uses Node's built-in runner. The HTTP smoke test launches the compiled API with a deliberately unreachable database, proving liveness remains 200, readiness becomes a sanitized 503, request IDs propagate, and Swagger is available. It does not require production secrets or a Supabase project.
+`npm test` uses Node's built-in runner. The HTTP smoke test launches the compiled API with a deliberately unreachable database, proving liveness remains 200, readiness becomes a sanitized 503, request IDs propagate, Swagger is available, metrics use bounded route labels, and metrics scrapes do not count themselves. It does not require production secrets or a Supabase project.
+
+With the API running, verify the Prometheus exposition locally:
+
+```bash
+curl http://127.0.0.1:3000/api/v1/health
+curl http://127.0.0.1:3000/api/v1/metrics
+```
+
+Metric definitions, scraping guidance, replica behavior, redaction guarantees, and the deferred OpenTelemetry plan are documented in `docs/observability.md`.
 
 For a configured development database, separately run migrations and `npm run smoke`. This is intentionally outside secret-free CI until an isolated CI database is provisioned.
 

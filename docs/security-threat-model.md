@@ -12,20 +12,20 @@
 
 ## Threats and mitigations
 
-| Threat                | Implemented mitigation                                           | Remaining risk/work                              |
-| --------------------- | ---------------------------------------------------------------- | ------------------------------------------------ |
-| SQL injection         | Parameterized values; dynamic fragments are fixed server strings | Database-backed query tests and continued review |
-| Mass assignment       | Explicit DTOs; global whitelist and forbidden extras             | Maintain DTO coverage                            |
-| Password/token theft  | Argon2id; opaque refresh hashes; short access TTL; TLS           | Secret manager and rotation exercise             |
-| Token replay          | Refresh rotation, family reuse detection, active-session check   | MFA and security alert delivery                  |
-| Broken access control | Global JWT/RBAC guards plus patient/doctor ownership checks      | Full integration/penetration suite               |
-| Brute force           | Per-process bounded auth throttle; generic login error           | Distributed ingress limiter for replicas         |
-| Double booking        | Slot lock and database partial unique index                      | Endpoint race test on dedicated PostgreSQL       |
-| Availability overlap  | GiST exclusion constraint and `409` mapping                      | Integration coverage                             |
-| Payment forgery       | Only `created` record accepted; no client success field          | Real provider webhook verification if integrated |
-| Audit tampering       | Append-only trigger and service audit writes                     | Least-privilege grants and external archive      |
-| Async event loss      | Outbox written in business transaction                           | Worker, retries, dead-letter recovery            |
-| Sensitive logs        | Metadata-only request logs and recursive redaction               | Central collector access/retention policy        |
+| Threat                | Implemented mitigation                                                             | Remaining risk/work                              |
+| --------------------- | ---------------------------------------------------------------------------------- | ------------------------------------------------ |
+| SQL injection         | Parameterized values; dynamic fragments are fixed server strings                   | Database-backed query tests and continued review |
+| Mass assignment       | Explicit DTOs; global whitelist and forbidden extras                               | Maintain DTO coverage                            |
+| Password/token theft  | Argon2id; opaque refresh hashes; short access TTL; TLS                             | Secret manager and rotation exercise             |
+| Token replay          | Refresh rotation, family reuse detection, active-session check                     | MFA and security alert delivery                  |
+| Broken access control | Global JWT/RBAC guards plus patient/doctor ownership checks                        | Full integration/penetration suite               |
+| Brute force           | Per-process bounded auth throttle; generic login error                             | Distributed ingress limiter for replicas         |
+| Double booking        | Slot lock and database partial unique index                                        | Endpoint race test on dedicated PostgreSQL       |
+| Availability overlap  | GiST exclusion constraint and `409` mapping                                        | Integration coverage                             |
+| Payment forgery       | Only `created` record accepted; no client success field                            | Real provider webhook verification if integrated |
+| Audit tampering       | Append-only trigger and service audit writes                                       | Least-privilege grants and external archive      |
+| Async event loss      | Outbox written in business transaction                                             | Worker, retries, dead-letter recovery            |
+| Sensitive logs        | Route-template request logs, recursive field redaction, message-free error objects | Central collector access/retention policy        |
 
 ## Checklist
 
